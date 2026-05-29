@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Planner</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f7f7f5;
+    --bg-tertiary: #f0f0ec;
+    --border: rgba(0,0,0,0.1);
+    --border-md: rgba(0,0,0,0.18);
+    --text: #1a1a1a;
+    --text-secondary: #555;
+    --text-tertiary: #999;
+    --blue: #378ADD;
+    --blue-bg: #E6F1FB;
+    --blue-text: #0C447C;
+    --green-bg: #E1F5EE;
+    --green-text: #085041;
+    --green-border: #1D9E75;
+    --purple-bg: #EEEDFE;
+    --purple-text: #3C3489;
+    --pink-bg: #FBEAF0;
+    --pink-text: #72243E;
+    --amber-bg: #FAEEDA;
+    --amber-text: #633806;
+    --teal: #0F6E56;
+    --gray: #888780;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-tertiary); min-height: 100vh; color: var(--text); }
+
+  /* LOGIN */
+  #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2.5rem 2rem; text-align: center; max-width: 360px; width: 100%; }
+  .login-card h1 { font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+  .login-card p { font-size: 14px; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6; }
+  .btn-google { display: inline-flex; align-items: center; gap: 10px; background: var(--bg); border: 0.5px solid var(--border-md); border-radius: var(--radius-md); padding: 10px 20px; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text); transition: background 0.15s; }
+  .btn-google:hover { background: var(--bg-secondary); }
+  .btn-google svg { width: 18px; height: 18px; }
+
+  /* APP */
+  #app { display: none; max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
+  .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .app-title { font-size: 17px; font-weight: 500; }
+  .app-meta { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--blue-bg); color: var(--blue-text); font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+  .btn-signout { background: none; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+  .btn-signout:hover { background: var(--bg-secondary); }
+
+  /* PLANNER CARD */
+  .planner { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .planner-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 0.5px solid var(--border); }
+  .planner-title { font-size: 15px; font-weight: 500; }
+  .planner-range { font-size: 13px; color: var(--text-secondary); }
+
+  /* DAYS NAV */
+  .days-nav { display: flex; padding: 0 20px; border-bottom: 0.5px solid var(--border); gap: 4px; overflow-x: auto; }
+  .day-btn { display: flex; flex-direction: column; align-items: center; padding: 10px 14px; border: none; background: transparent; cursor: pointer; border-radius: var(--radius-md) var(--radius-md) 0 0; min-width: 60px; }
+  .day-btn:hover { background: var(--bg-secondary); }
+  .day-btn.active { background: var(--blue-bg); border-bottom: 2px solid var(--blue); }
+  .day-btn.active .day-label, .day-btn.active .day-num { color: var(--blue-text); }
+  .day-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; }
+  .day-num { font-size: 17px; font-weight: 500; color: var(--text); line-height: 1.3; }
+  .day-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--blue); margin-top: 3px; }
+  .day-btn.active .day-dot { background: var(--blue-text); }
+
+  /* BODY */
+  .planner-body { display: grid; grid-template-columns: 220px 1fr; }
+
+  /* AGENDA */
+  .agenda-panel { border-right: 0.5px solid var(--border); display: flex; flex-direction: column; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
+  .panel-head-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+  .badge { background: var(--blue-bg); color: var(--blue-text); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; }
+  .agenda-list { overflow-y: auto; flex: 1; padding: 8px 0; max-height: 460px; }
+  .agenda-loading { padding: 20px 16px; font-size: 12px; color: var(--text-tertiary); text-align: center; }
+  .agenda-item { display: flex; gap: 10px; padding: 7px 16px; cursor: pointer; }
+  .agenda-item:hover { background: var(--bg-secondary); }
+  .agenda-item.has-note .agenda-name { color: var(--blue); }
+  .agenda-item.selected { background: var(--bg-secondary); }
+  .agenda-time { font-size: 11px; color: var(--text-tertiary); min-width: 36px; padding-top: 2px; white-space: nowrap; }
+  .agenda-bar { width: 3px; border-radius: 2px; flex-shrink: 0; align-self: stretch; background: var(--blue); }
+  .agenda-bar.focus { background: var(--teal); }
+  .agenda-bar.out { background: var(--gray); }
+  .agenda-name-wrap { flex: 1; min-width: 0; }
+  .agenda-name { font-size: 12px; color: var(--text); line-height: 1.4; }
+  .agenda-note-preview { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+  /* RIGHT */
+  .right-panel { display: flex; flex-direction: column; }
+  .event-detail { padding: 12px 16px; background: var(--bg-secondary); border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
+  .event-detail-empty { padding: 12px 16px; font-size: 12px; color: var(--text-tertiary); font-style: italic; border-bottom: 0.5px solid var(--border); }
+  .event-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .event-detail-name { font-size: 13px; font-weight: 500; }
+  .event-detail-time { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .evt-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; }
+  .evt-textarea { width: 100%; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 7px 10px; font-size: 12px; color: var(--text); resize: none; font-family: inherit; line-height: 1.5; }
+  .evt-textarea:focus { outline: none; border-color: var(--border-md); }
+  .evt-textarea::placeholder { color: var(--text-tertiary); }
+  .evt-actions { display: flex; justify-content: flex-end; align-items: center; margin-top: 8px; gap: 6px; }
+  .close-btn { background: none; border: none; cursor: pointer; padding: 2px; color: var(--text-tertiary); font-size: 16px; flex-shrink: 0; line-height: 1; }
+  .close-btn:hover { color: var(--text-secondary); }
+
+  /* TASKS */
+  .tasks-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 0.5px solid var(--border); font-size: 13px; font-weight: 500; flex-shrink: 0; }
+  .tasks-body { overflow-y: auto; flex: 1; padding: 8px 12px; max-height: 280px; }
+  .section-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); padding: 8px 4px 6px; display: flex; align-items: center; gap: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 0.5px solid var(--border); border-radius: var(--radius-md); margin-bottom: 6px; background: var(--bg); }
+  .task-item:hover { border-color: var(--border-md); }
+  .task-item.from-event { border-left: 3px solid var(--blue); border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+  .task-item.from-event.done-item { border-left-color: var(--green-border); }
+  .task-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border-md); flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .task-check.done { background: var(--green-bg); border-color: var(--green-border); }
+  .task-inner { flex: 1; min-width: 0; }
+  .task-text { font-size: 13px; color: var(--text); line-height: 1.4; }
+  .task-text.done { text-decoration: line-through; color: var(--text-tertiary); }
+  .task-origin { font-size: 11px; color: var(--blue); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+  .tags { display: flex; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+  .tag-equipe { background: var(--purple-bg); color: var(--purple-text); }
+  .tag-gerencia { background: var(--pink-bg); color: var(--pink-text); }
+  .tag-fornecedores { background: var(--amber-bg); color: var(--amber-text); }
+  .tag-todo { background: var(--green-bg); color: var(--green-text); }
+  .task-del { font-size: 14px; color: var(--text-tertiary); padding: 2px; opacity: 0; flex-shrink: 0; background: none; border: none; cursor: pointer; }
+  .task-item:hover .task-del { opacity: 1; }
+  .add-task { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 0.5px dashed var(--border); border-radius: var(--radius-md); cursor: pointer; margin-bottom: 6px; color: var(--text-tertiary); font-size: 12px; }
+  .add-task:hover { border-color: var(--border-md); color: var(--text-secondary); background: var(--bg-secondary); }
+  .add-form { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 0 6px; }
+  .empty-hint { font-size: 12px; color: var(--text-tertiary); padding: 4px 4px 8px; font-style: italic; }
+
+  /* NOTES */
+  .note-area { border-top: 0.5px solid var(--border); padding: 10px 16px; flex-shrink: 0; }
+  .note-label { font-size: 11px; color: var(--text-tertiary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; }
+  .note-input { width: 100%; background: transparent; border: none; outline: none; font-size: 12px; color: var(--text-secondary); resize: none; font-family: inherit; line-height: 1.5; }
+  .note-input::placeholder { color: var(--text-tertiary); }
+
+  /* BUTTONS / INPUTS */
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; }
+  .btn { background: var(--bg); border: 0.5px solid var(--border-md); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 12px; color: var(--text); cursor: pointer; }
+  .btn:hover { background: var(--bg-secondary); }
+  .btn-primary { background: var(--blue-bg); border-color: var(--blue); color: var(--blue-text); }
+  .btn-primary:hover { background: #d0e8f8; }
+  input[type=text], select { background: var(--bg); border: 0.5px solid var(--border-md); border-radius: var(--radius-sm); padding: 6px 8px; font-size: 12px; color: var(--text); }
+  input[type=text]:focus, select:focus { outline: none; border-color: var(--blue); }
+
+  /* SPINNER */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .planner-body { grid-template-columns: 1fr; }
+    .agenda-panel { border-right: none; border-bottom: 0.5px solid var(--border); }
+    .agenda-list { max-height: 200px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div style="font-size:32px;margin-bottom:12px">📋</div>
+    <h1>Meu Planner</h1>
+    <p>Sua agenda da semana, tarefas do dia e backlog — tudo em um só lugar.</p>
+    <button class="btn-google" onclick="signIn()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Entrar com Google
+    </button>
+    <p style="font-size:11px;color:var(--text-tertiary);margin-top:1.5rem">Apenas leitura da agenda. Nenhum dado é enviado a terceiros.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-header">
+    <span class="app-title">📋 Meu Planner</span>
+    <div class="app-meta">
+      <div class="user-avatar" id="user-initials">GF</div>
+      <span id="user-name" style="font-size:13px;color:var(--text-secondary)"></span>
+      <button class="btn-signout" onclick="signOut()">Sair</button>
+    </div>
+  </div>
+
+  <div class="planner">
+    <div class="planner-header">
+      <span class="planner-title" id="week-title">Planner · semana</span>
+      <span class="planner-range" id="week-range"></span>
+    </div>
+    <div class="days-nav" id="days-nav"></div>
+    <div class="planner-body">
+      <div class="agenda-panel">
+        <div class="panel-head">
+          <span class="panel-head-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Agenda
+          </span>
+          <span class="badge" id="agenda-count">0</span>
+        </div>
+        <div class="agenda-list" id="agenda-list">
+          <div class="agenda-loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+      <div class="right-panel">
+        <div id="event-detail-area"></div>
+        <div class="tasks-head">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Tarefas
+        </div>
+        <div class="tasks-body" id="tasks-body"></div>
+        <div class="note-area">
+          <div class="note-label">Anotações do dia</div>
+          <textarea class="note-input" id="note-input" rows="2" placeholder="Escreva suas anotações aqui…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = '224350315417-34si42bjnkamimrl6jspu1re50u252rg.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const STORAGE_KEY = 'meu_planner_data';
+
+let tokenClient;
+let accessToken = null;
+let activeDay = '';
+let selectedEventId = null;
+let calendarEvents = {};
+let eventNotes = {};
+let eventTaskDone = {};
+let eventTaskTag = {};
+let dayNotes = {};
+let backlog = [];
+let addingBacklog = false;
+let currentWeekStart = null;
+
+function loadStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      eventNotes = d.eventNotes || {};
+      eventTaskDone = d.eventTaskDone || {};
+      eventTaskTag = d.eventTaskTag || {};
+      dayNotes = d.dayNotes || {};
+      backlog = d.backlog || [];
+    }
+  } catch(e) {}
+}
+
+function saveStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ eventNotes, eventTaskDone, eventTaskTag, dayNotes, backlog }));
+}
+
+function getWeekDays(baseDate) {
+  const d = new Date(baseDate);
+  const dow = d.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  const days = [];
+  const labels = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
+    days.push({
+      label: labels[i],
+      num: String(day.getDate()).padStart(2,'0'),
+      date: day.toISOString().slice(0,10),
+      jsDate: day
+    });
+  }
+  return days;
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+}
+
+function noteKey(evtId) { return activeDay + '__' + evtId; }
+
+function getEventTasks() {
+  return (calendarEvents[activeDay] || []).filter(e => (eventNotes[noteKey(e.id)] || '').trim().length > 0);
+}
+
+function initGoogleAuth() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) return;
+      accessToken = resp.access_token;
+      fetchUserInfo();
+    }
+  });
+}
+
+function signIn() { tokenClient.requestAccessToken(); }
+
+function signOut() {
+  google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+function fetchUserInfo() {
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  }).then(r => r.json()).then(info => {
+    const name = info.given_name || info.name || 'Usuário';
+    document.getElementById('user-name').textContent = name;
+    document.getElementById('user-initials').textContent = name.slice(0,2).toUpperCase();
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initWeek(new Date());
+  });
+}
+
+function initWeek(baseDate) {
+  const days = getWeekDays(baseDate);
+  currentWeekStart = days[0].jsDate;
+  const start = days[0];
+  const end = days[6];
+  document.getElementById('week-title').textContent = `Planner · semana ${start.num}/${String(start.jsDate.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('week-range').textContent = `${fmtDate(start.jsDate)} – ${fmtDate(end.jsDate)} ${end.jsDate.getFullYear()}`;
+
+  const today = new Date().toISOString().slice(0,10);
+  activeDay = days.find(d => d.date === today) ? today : days[0].date;
+  selectedEventId = null;
+
+  renderDays(days);
+  fetchWeekEvents(days);
+}
+
+function renderDays(days) {
+  const nav = document.getElementById('days-nav');
+  nav.innerHTML = days.map(d => {
+    const hasEvt = (calendarEvents[d.date] || []).length > 0;
+    return `<button class="day-btn${d.date===activeDay?' active':''}" onclick="selectDay('${d.date}')">
+      <span class="day-label">${d.label}</span>
+      <span class="day-num">${d.num}</span>
+      ${hasEvt ? '<span class="day-dot"></span>' : '<span style="width:4px;height:4px;margin-top:3px"></span>'}
+    </button>`;
+  }).join('');
+}
+
+function fetchWeekEvents(days) {
+  document.getElementById('agenda-list').innerHTML = '<div class="agenda-loading"><div class="spinner"></div></div>';
+  const timeMin = days[0].date + 'T00:00:00-03:00';
+  const timeMax = days[6].date + 'T23:59:59-03:00';
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=200&timeZone=America/Sao_Paulo`;
+  fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } })
+    .then(r => r.json())
+    .then(data => {
+      calendarEvents = {};
+      (data.items || []).forEach(evt => {
+        if (evt.status === 'cancelled') return;
+        const dateStr = (evt.start.dateTime || evt.start.date || '').slice(0,10);
+        if (!calendarEvents[dateStr]) calendarEvents[dateStr] = [];
+        let type = 'default';
+        if (evt.eventType === 'focusTime') type = 'focus';
+        else if (evt.eventType === 'outOfOffice') type = 'out';
+        const startDt = evt.start.dateTime;
+        const time = startDt ? new Date(startDt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}) : '';
+        calendarEvents[dateStr].push({ id: evt.id, name: evt.summary || '(sem título)', time, type });
+      });
+      renderDays(getWeekDays(currentWeekStart));
+      renderAgenda();
+      renderEventDetail();
+      renderTasks();
+    })
+    .catch(() => {
+      document.getElementById('agenda-list').innerHTML = '<div class="agenda-loading" style="color:#E24B4A">Erro ao carregar agenda. Tente recarregar.</div>';
+    });
+}
+
+function renderAgenda() {
+  const list = document.getElementById('agenda-list');
+  const evts = calendarEvents[activeDay] || [];
+  document.getElementById('agenda-count').textContent = evts.length;
+  if (!evts.length) {
+    list.innerHTML = '<div class="agenda-loading">Sem eventos neste dia</div>';
+    return;
+  }
+  list.innerHTML = evts.map(e => {
+    const note = (eventNotes[noteKey(e.id)] || '').trim();
+    const hasNote = note.length > 0;
+    const isSel = e.id === selectedEventId;
+    return `<div class="agenda-item${hasNote?' has-note':''}${isSel?' selected':''}" onclick="selectEvent('${e.id}')">
+      <span class="agenda-time">${e.time}</span>
+      <div class="agenda-bar ${e.type}"></div>
+      <div class="agenda-name-wrap">
+        <div class="agenda-name">${escHtml(e.name)}${hasNote?' 📝':''}</div>
+        ${hasNote ? `<div class="agenda-note-preview">${escHtml(note)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderEventDetail() {
+  const area = document.getElementById('event-detail-area');
+  if (!selectedEventId) {
+    area.innerHTML = '<div class="event-detail-empty">← Clique em um evento para adicionar anotações — elas virarão tarefas do dia</div>';
+    return;
+  }
+  const evts = calendarEvents[activeDay] || [];
+  const evt = evts.find(e => e.id === selectedEventId);
+  if (!evt) { area.innerHTML = ''; return; }
+  const key = noteKey(evt.id);
+  const note = eventNotes[key] || '';
+  const curTag = eventTaskTag[key] || 'todo';
+  area.innerHTML = `<div class="event-detail">
+    <div class="event-detail-header">
+      <div>
+        <div class="event-detail-name">${escHtml(evt.name)}</div>
+        <div class="event-detail-time">🕐 ${evt.time}</div>
+      </div>
+      <button class="close-btn" onclick="closeEventDetail()">✕</button>
+    </div>
+    <div class="evt-label">Anotações / to do</div>
+    <textarea class="evt-textarea" id="evt-ta" rows="3" placeholder="Escreva aqui — ao salvar, vira tarefa do dia…">${escHtml(note)}</textarea>
+    <div class="evt-actions">
+      <select id="evt-tag" class="btn">
+        <option value="equipe"${curTag==='equipe'?' selected':''}>Equipe</option>
+        <option value="gerencia"${curTag==='gerencia'?' selected':''}>Gerência</option>
+        <option value="fornecedores"${curTag==='fornecedores'?' selected':''}>Fornecedores</option>
+        <option value="todo"${curTag==='todo'?' selected':''}>To do</option>
+      </select>
+      <button class="btn" onclick="closeEventDetail()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEventNote()">✓ Salvar como tarefa</button>
+    </div>
+  </div>`;
+  setTimeout(() => { const ta = document.getElementById('evt-ta'); if(ta) ta.focus(); }, 50);
+}
+
+function saveEventNote() {
+  const ta = document.getElementById('evt-ta');
+  const sel = document.getElementById('evt-tag');
+  if (!ta || !selectedEventId) return;
+  const key = noteKey(selectedEventId);
+  const prev = (eventNotes[key] || '').trim();
+  const next = ta.value.trim();
+  eventNotes[key] = ta.value;
+  eventTaskTag[key] = sel ? sel.value : 'todo';
+  if (next.length > 0 && prev === '') eventTaskDone[key] = false;
+  if (next.length === 0) { delete eventTaskDone[key]; delete eventTaskTag[key]; }
+  selectedEventId = null;
+  saveStorage();
+  renderAgenda(); renderEventDetail(); renderTasks();
+}
+
+function closeEventDetail() {
+  const ta = document.getElementById('evt-ta');
+  if (ta && selectedEventId) eventNotes[noteKey(selectedEventId)] = ta.value;
+  selectedEventId = null;
+  renderAgenda(); renderEventDetail();
+}
+
+function selectEvent(id) {
+  const ta = document.getElementById('evt-ta');
+  if (ta && selectedEventId) eventNotes[noteKey(selectedEventId)] = ta.value;
+  selectedEventId = (selectedEventId === id) ? null : id;
+  renderAgenda(); renderEventDetail();
+}
+
+function tagBadge(tag) {
+  const labels = { equipe:'Equipe', gerencia:'Gerência', fornecedores:'Fornecedores', todo:'To do' };
+  return `<span class="tag tag-${tag}">${labels[tag]||tag}</span>`;
+}
+
+function renderTasks() {
+  const body = document.getElementById('tasks-body');
+  const evtTasks = getEventTasks();
+  const fmtDay = { 0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb' };
+  const d = new Date(activeDay + 'T12:00:00');
+  const dayLabel = `${fmtDay[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}`;
+  let html = '';
+
+  html += `<div class="section-label">☀ Do dia &nbsp;<span style="font-weight:400;color:var(--text-tertiary)">${dayLabel.toUpperCase()}</span></div>`;
+  if (!evtTasks.length) {
+    html += '<div class="empty-hint">Adicione anotações nos eventos para gerar tarefas aqui</div>';
+  } else {
+    evtTasks.forEach(e => {
+      const key = noteKey(e.id);
+      const note = (eventNotes[key] || '').trim();
+      const done = !!eventTaskDone[key];
+      const tag = eventTaskTag[key] || 'todo';
+      html += `<div class="task-item from-event${done?' done-item':''}">
+        <div class="task-check${done?' done':''}" onclick="toggleEventTask('${escAttr(e.id)}')">
+          ${done ? '✓' : ''}
+        </div>
+        <div class="task-inner">
+          <div class="task-text${done?' done':''}">${escHtml(note)}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
+            ${tagBadge(tag)}
+            <span class="task-origin">📅 ${e.time} · ${escHtml(e.name)}</span>
+          </div>
+        </div>
+        <button class="task-del" onclick="removeEventTask('${escAttr(e.id)}')">🗑</button>
+      </div>`;
+    });
+  }
+
+  html += `<div class="section-label" style="margin-top:10px">📥 Backlog pendente</div>`;
+  if (!backlog.length) {
+    html += '<div class="empty-hint">Sem itens no backlog</div>';
+  } else {
+    backlog.forEach(t => {
+      html += `<div class="task-item">
+        <div class="task-check${t.done?' done':''}" onclick="toggleBacklog('${t.id}')">
+          ${t.done ? '✓' : ''}
+        </div>
+        <div class="task-inner">
+          <div class="task-text${t.done?' done':''}">${escHtml(t.text)}</div>
+          <div class="tags">${tagBadge(t.tag)}</div>
+        </div>
+        <button class="task-del" onclick="delBacklog('${t.id}')">🗑</button>
+      </div>`;
+    });
+  }
+
+  if (addingBacklog) {
+    html += `<div class="add-form" id="add-form-backlog">
+      <input type="text" id="add-input-backlog" placeholder="Descrição da tarefa…" style="flex:2" onkeydown="if(event.key==='Enter')saveBacklog()">
+      <select id="add-tag-backlog">
+        <option value="equipe">Equipe</option>
+        <option value="gerencia">Gerência</option>
+        <option value="fornecedores">Fornecedores</option>
+        <option value="todo">To do</option>
+      </select>
+      <button class="btn btn-primary" onclick="saveBacklog()">Salvar</button>
+      <button class="btn" onclick="cancelBacklog()">✕</button>
+    </div>`;
+  } else {
+    html += `<div class="add-task" onclick="showAddBacklog()">+ Adicionar ao backlog</div>`;
+  }
+
+  body.innerHTML = html;
+  const ni = document.getElementById('note-input');
+  if (ni) ni.value = dayNotes[activeDay] || '';
+  if (addingBacklog) setTimeout(() => { const el = document.getElementById('add-input-backlog'); if(el) el.focus(); }, 50);
+}
+
+function toggleEventTask(evtId) { const key = noteKey(evtId); eventTaskDone[key] = !eventTaskDone[key]; saveStorage(); renderTasks(); }
+function removeEventTask(evtId) { const key = noteKey(evtId); delete eventNotes[key]; delete eventTaskDone[key]; delete eventTaskTag[key]; saveStorage(); renderAgenda(); renderTasks(); }
+function toggleBacklog(id) { const t = backlog.find(x=>x.id===id); if(t) t.done=!t.done; saveStorage(); renderTasks(); }
+function delBacklog(id) { backlog = backlog.filter(x=>x.id!==id); saveStorage(); renderTasks(); }
+function showAddBacklog() { addingBacklog = true; renderTasks(); }
+function cancelBacklog() { addingBacklog = false; renderTasks(); }
+function saveBacklog() {
+  const input = document.getElementById('add-input-backlog');
+  const tag = document.getElementById('add-tag-backlog');
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+  backlog.push({ id: 'u' + Date.now(), text, tag: tag ? tag.value : 'todo', done: false });
+  addingBacklog = false;
+  saveStorage(); renderTasks();
+}
+
+function selectDay(date) {
+  const ta = document.getElementById('evt-ta');
+  if (ta && selectedEventId) eventNotes[noteKey(selectedEventId)] = ta.value;
+  const ni = document.getElementById('note-input');
+  if (ni) dayNotes[activeDay] = ni.value;
+  activeDay = date;
+  selectedEventId = null;
+  const days = getWeekDays(currentWeekStart);
+  renderDays(days);
+  renderAgenda();
+  renderEventDetail();
+  renderTasks();
+  saveStorage();
+}
+
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'note-input') { dayNotes[activeDay] = e.target.value; saveStorage(); }
+});
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s).replace(/'/g,"\\'"); }
+
+window.onload = () => {
+  loadStorage();
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.onload = initGoogleAuth;
+  document.head.appendChild(script);
+};
+</script>
+</body>
+</html>
