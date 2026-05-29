@@ -154,6 +154,15 @@
   .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* WEEK NAV */
+  .week-nav { display: flex; align-items: center; gap: 8px; }
+  .week-arrow { background: none; border: 0.5px solid var(--border); border-radius: var(--radius-sm); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); font-size: 14px; transition: background 0.12s, border-color 0.12s; flex-shrink: 0; }
+  .week-arrow:hover { background: var(--bg-secondary); border-color: var(--border-md); color: var(--text); }
+  .week-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+  .week-today-btn { background: none; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 11px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: background 0.12s; }
+  .week-today-btn:hover { background: var(--bg-secondary); color: var(--text); }
+  .week-today-btn.is-current { color: var(--blue-text); border-color: var(--blue); background: var(--blue-bg); }
+
   /* RESPONSIVE */
   @media (max-width: 600px) {
     .planner-body { grid-template-columns: 1fr; }
@@ -197,7 +206,12 @@
   <div class="planner">
     <div class="planner-header">
       <span class="planner-title" id="week-title">Planner · semana</span>
-      <span class="planner-range" id="week-range"></span>
+      <div class="week-nav">
+        <button class="week-arrow" id="btn-prev-week" onclick="changeWeek(-1)" title="Semana anterior" aria-label="Semana anterior">&#8249;</button>
+        <button class="week-today-btn" id="btn-today" onclick="goToToday()" title="Ir para a semana atual">Hoje</button>
+        <button class="week-arrow" id="btn-next-week" onclick="changeWeek(1)" title="Próxima semana" aria-label="Próxima semana">&#8250;</button>
+        <span class="planner-range" id="week-range"></span>
+      </div>
     </div>
     <div class="days-nav" id="days-nav"></div>
     <div class="planner-body">
@@ -290,7 +304,37 @@ function fmtDate(d) {
   return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
 }
 
-function noteKey(evtId) { return activeDay + '__' + evtId; }
+function changeWeek(direction) {
+  const ta = document.getElementById('evt-ta');
+  if (ta && selectedEventId) eventNotes[noteKey(selectedEventId)] = ta.value;
+  const ni = document.getElementById('note-input');
+  if (ni) dayNotes[activeDay] = ni.value;
+  const next = new Date(currentWeekStart);
+  next.setDate(next.getDate() + direction * 7);
+  selectedEventId = null;
+  initWeek(next);
+}
+
+function goToToday() {
+  const ta = document.getElementById('evt-ta');
+  if (ta && selectedEventId) eventNotes[noteKey(selectedEventId)] = ta.value;
+  const ni = document.getElementById('note-input');
+  if (ni) dayNotes[activeDay] = ni.value;
+  selectedEventId = null;
+  initWeek(new Date());
+}
+
+function updateWeekNav(days) {
+  const todayStr = new Date().toISOString().slice(0,10);
+  const isCurrentWeek = days.some(d => d.date === todayStr);
+  const todayBtn = document.getElementById('btn-today');
+  if (todayBtn) {
+    todayBtn.classList.toggle('is-current', isCurrentWeek);
+    todayBtn.textContent = isCurrentWeek ? 'Esta semana' : 'Hoje';
+  }
+}
+
+
 
 function getEventTasks() {
   return (calendarEvents[activeDay] || []).filter(e => (eventNotes[noteKey(e.id)] || '').trim().length > 0);
@@ -343,6 +387,7 @@ function initWeek(baseDate) {
   selectedEventId = null;
 
   renderDays(days);
+  updateWeekNav(days);
   fetchWeekEvents(days);
 }
 
