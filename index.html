@@ -394,14 +394,29 @@ function renderDays(days) {
   }).join('');
 }
 
-function fetchWeekEvents(days) {
+function fetchWeekEvents(days, isRetry) {
   document.getElementById('agenda-list').innerHTML = '<div class="agenda-loading"><div class="spinner"></div></div>';
   const timeMin = days[0].date + 'T00:00:00-03:00';
   const timeMax = days[6].date + 'T23:59:59-03:00';
   const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=200&timeZone=America/Sao_Paulo`;
   fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } })
-    .then(r => r.json())
+    .then(r => {
+      if (r.status === 401 && !isRetry) {
+        tokenClient.callback = (resp) => {
+          if (resp.error) {
+            document.getElementById('agenda-list').innerHTML = '<div class="agenda-loading" style="color:#E24B4A">Sessão expirada. Faça login novamente.</div>';
+            return;
+          }
+          accessToken = resp.access_token;
+          fetchWeekEvents(days, true);
+        };
+        tokenClient.requestAccessToken({ prompt: '' });
+        return null;
+      }
+      return r.json();
+    })
     .then(data => {
+      if (!data) return;
       calendarEvents = {};
       (data.items || []).forEach(evt => {
         if (evt.status === 'cancelled') return;
