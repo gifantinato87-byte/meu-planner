@@ -249,7 +249,7 @@
 
 <script>
 const CLIENT_ID = '224350315417-34si42bjnkamimrl6jspu1re50u252rg.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.appdata';
 const STORAGE_KEY = 'meu_planner_data';
 
 let tokenClient;
@@ -265,6 +265,7 @@ let backlog = [];
 let addingBacklog = false;
 let editingTaskId = null;
 let currentWeekStart = null;
+let driveFileId = null;
 
 function loadStorage() {
   try {
@@ -281,7 +282,68 @@ function loadStorage() {
 }
 
 function saveStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ eventNotes, eventTaskDone, eventTaskTag, dayNotes, backlog }));
+  const data = { eventNotes, eventTaskDone, eventTaskTag, dayNotes, backlog };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (accessToken) saveToDrive(data);
+}
+
+function driveData() {
+  return { eventNotes, eventTaskDone, eventTaskTag, dayNotes, backlog };
+}
+
+function applyData(d) {
+  if (!d) return;
+  eventNotes = d.eventNotes || {};
+  eventTaskDone = d.eventTaskDone || {};
+  eventTaskTag = d.eventTaskTag || {};
+  dayNotes = d.dayNotes || {};
+  backlog = d.backlog || [];
+}
+
+function loadFromDrive(onDone) {
+  // Find file in appDataFolder
+  fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27planner-data.json%27&fields=files(id)', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  })
+  .then(r => r.json())
+  .then(res => {
+    const files = res.files || [];
+    if (files.length === 0) { onDone(); return; }
+    driveFileId = files[0].id;
+    return fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+  })
+  .then(r => r ? r.json() : null)
+  .then(data => { if (data) applyData(data); onDone(); })
+  .catch(() => onDone());
+}
+
+function saveToDrive(data) {
+  const body = JSON.stringify(data);
+  const blob = new Blob([body], { type: 'application/json' });
+
+  if (driveFileId) {
+    // Update existing file
+    fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body
+    });
+  } else {
+    // Create new file in appDataFolder
+    const meta = JSON.stringify({ name: 'planner-data.json', parents: ['appDataFolder'] });
+    const fd = new FormData();
+    fd.append('metadata', new Blob([meta], { type: 'application/json' }));
+    fd.append('file', blob);
+    fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken },
+      body: fd
+    })
+    .then(r => r.json())
+    .then(res => { if (res.id) driveFileId = res.id; });
+  }
 }
 
 function getWeekDays(baseDate) {
@@ -368,7 +430,7 @@ function fetchUserInfo() {
     document.getElementById('user-initials').textContent = name.slice(0,2).toUpperCase();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    initWeek(new Date());
+    loadFromDrive(() => initWeek(new Date()));
   });
 }
 
